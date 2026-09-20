@@ -1,0 +1,27 @@
+# Virtual environment
+venv/
+.venv/
+
+# Environment variables (API keys)
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated vector database
+vector_db/
+backend/vector_db/
+
+# Uploaded PDFs
+backend/data/uploads/*.pdf
+
+# Streamlit
+.streamlit/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Chat history
+frontend/chat_history.json
