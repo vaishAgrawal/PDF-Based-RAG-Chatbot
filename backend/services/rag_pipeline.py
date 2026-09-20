@@ -12,18 +12,8 @@ class RAGPipeline:
         api_key = os.getenv("GROQ_API_KEY")
         self.client = Groq(api_key=api_key) if api_key else None
 
-    def answer(
-        self,
-        question: str,
-        document_id: str | None,
-        history: list[dict[str, str]] | None = None,
-    ) -> dict:
-        if not document_id:
-            return {
-                "answer": "Upload a PDF in this conversation before asking a question.",
-                "sources": [],
-            }
-        contexts = list(dict.fromkeys(self.store.search(question, document_id)))
+    def answer(self, question: str) -> dict:
+        contexts = list(dict.fromkeys(self.store.search(question)))
         if not contexts:
             return {"answer": "No documents have been indexed yet.", "sources": []}
 
@@ -31,11 +21,6 @@ class RAGPipeline:
         if not self.client:
             return self._fallback(question, contexts)
 
-        conversation = [
-            {"role": message["role"], "content": message["content"]}
-            for message in (history or [])[-10:]
-            if message.get("role") in {"user", "assistant"} and message.get("content")
-        ]
         try:
             response = self.client.chat.completions.create(
                 model="qwen/qwen3.8-27b",
@@ -44,14 +29,12 @@ class RAGPipeline:
                     {
                         "role": "system",
                         "content": (
-                            "You answer questions about the active document. Use only the supplied document context "
-                            "and conversation history. Answer directly and concisely, preserve names and numbers "
-                            "exactly, do not repeat the context, and say 'Not found in the document.' when the "
-                            "answer is absent."
+                            "You answer questions about a document. Use only the supplied context. "
+                            "Answer the question directly and concisely, preserve names and numbers exactly, "
+                            "do not repeat the context, and say 'Not found in the document.' when the answer is absent."
                         ),
                     },
-                    *conversation,
-                    {"role": "user", "content": f"Document context:\n{context}\n\nQuestion: {question}"},
+                    {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
                 ],
             )
         except APIStatusError:

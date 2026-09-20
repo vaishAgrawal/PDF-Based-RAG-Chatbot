@@ -2,7 +2,6 @@
 
 import shutil
 from pathlib import Path
-from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -29,8 +28,6 @@ app = FastAPI(title="Document RAG API")
 
 class Question(BaseModel):
     question: str
-    document_id: str | None = None
-    history: list[dict[str, str]] = []
 
 
 @app.get("/health")
@@ -50,13 +47,8 @@ def upload_document(file: UploadFile = File(...)) -> dict:
     chunks = chunk_text(text)
     if not chunks:
         raise HTTPException(status_code=400, detail="The PDF contains no extractable text")
-    document_id = uuid4().hex
-    store.add(chunks, document_id)
-    return {
-        "document_id": document_id,
-        "filename": destination.name,
-        "chunks_indexed": len(chunks),
-    }
+    store.add(chunks)
+    return {"filename": destination.name, "chunks_indexed": len(chunks)}
 
 
 @app.post("/ask")
@@ -64,4 +56,4 @@ def ask_question(payload: Question) -> dict:
     question = payload.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    return pipeline.answer(question, payload.document_id, payload.history)
+    return pipeline.answer(question)

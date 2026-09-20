@@ -31,7 +31,6 @@ def new_chat() -> dict:
         "id": uuid4().hex,
         "title": "New conversation",
         "created_at": datetime.now().isoformat(timespec="seconds"),
-        "document_id": None,
         "messages": [],
     }
 
@@ -106,10 +105,7 @@ with st.sidebar:
                     timeout=120,
                 )
                 if response.ok:
-                    result = response.json()
-                    active_chat["document_id"] = result["document_id"]
-                    save_chats(st.session_state.chats)
-                    st.success(f"{result['chunks_indexed']} sections indexed for this conversation")
+                    st.success(f"{response.json()['chunks_indexed']} sections indexed")
                 else:
                     st.error(response.text)
             except requests.RequestException:
@@ -171,13 +167,7 @@ if question:
     with st.spinner("Searching..."):
         try:
             response = requests.post(
-                f"{API_URL}/ask",
-                json={
-                    "question": question,
-                    "document_id": active_chat.get("document_id"),
-                    "history": active_chat["messages"],
-                },
-                timeout=120,
+                f"{API_URL}/ask", json={"question": question}, timeout=120
             )
             if response.ok:
                 result = response.json()
